@@ -1,6 +1,8 @@
 #!/usr/bin/env perl
+use Archive::Zip;
+use File::Temp qw(tempdir);
+use Image::Magick;
 use Mojolicious::Lite;
-use Data::Dumper;
 
 # Documentation browser under "/perldoc"
 plugin 'PODRenderer';
@@ -12,8 +14,36 @@ get '/' => sub {
 
 post '/upload' => sub {
   my $c = shift;
+  my $dir = tempdir(CLEANUP => 1);
+  my $icons_dir = $dir . '/icons';
+  mkdir $icons_dir;
+
   my $svgfile = $c->req->upload('svgfile');
-  # TODO: Implement image conversions
+  $svgfile->move_to($dir . '/input.svg');
+
+  my $zip = Archive::Zip->new;
+
+  my %configs = (
+    'icon-60@3x' => 180
+  );
+
+  my $image = new Image::Magick;
+  $image->Read($dir . '/input.svg');
+  while (my ($name, $size) = each(%configs)) {
+    my $filename = $icons_dir . '/' . $name . '.png';
+    $image->Scale(width => $size, height => $size);
+    $image->Write('png:' . $filename);
+    $zip->addFile($filename);
+  }
+
+  my $content;
+  open my $fh, '>', \$content;
+  binmode $fh;
+  $zip->writeToFileHandle($fh);
+  close $fh;
+
+  $c->res->headers->content_disposition('attachment; filename=icons.zip;');
+  $c->render(data => $content, format => 'zip');
 };
 
 app->start;

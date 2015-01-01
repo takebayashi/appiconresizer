@@ -18,8 +18,9 @@ post '/upload' => sub {
   my $icons_dir = $dir . '/icons';
   mkdir $icons_dir;
 
-  my $svgfile = $c->req->upload('svgfile');
-  $svgfile->move_to($dir . '/input.svg');
+  my $source_file = $c->req->upload('imagefile');
+  my $input_filename = $dir . '/' . $source_file->filename;
+  $source_file->move_to($input_filename);
 
   my $zip = Archive::Zip->new;
 
@@ -28,12 +29,12 @@ post '/upload' => sub {
   );
 
   my $image = new Image::Magick;
-  $image->Read($dir . '/input.svg');
+  $image->Read($input_filename);
   while (my ($name, $size) = each(%configs)) {
-    my $filename = $icons_dir . '/' . $name . '.png';
+    my $icon_filename = $icons_dir . '/' . $name . '.png';
     $image->Scale(width => $size, height => $size);
-    $image->Write('png:' . $filename);
-    $zip->addFile($filename);
+    $image->Write('png:' . $icon_filename);
+    $zip->addFile($icon_filename);
   }
 
   my $content;
@@ -51,11 +52,11 @@ __DATA__
 
 @@ index.html.ep
 % layout 'default';
-% title 'Welcome';
+% title 'Home';
 <form method="POST" action="/upload" enctype ="multipart/form-data">
   <fieldset>
-    <legend>Upload SVG</legend>
-    <input type="file" name="svgfile">
+    <legend>Upload source image</legend>
+    <input type="file" name="imagefile">
     <input type="submit">
   </fieldset>
 </form>
@@ -63,6 +64,6 @@ __DATA__
 @@ layouts/default.html.ep
 <!DOCTYPE html>
 <html>
-  <head><title><%= title %> / svg2icons</title></head>
-  <body><h1>svg2icons</h1><%= content %></body>
+  <head><title><%= title %> / App Icon Resizer</title></head>
+  <body><h1>App Icon Resizer</h1><%= content %></body>
 </html>

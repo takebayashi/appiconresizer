@@ -7,5 +7,5 @@ WORKDIR /app
 ADD cpanfile app.pl /app/
 RUN cpanm --installdeps .
 
-EXPOSE 3000
-CMD ["perl", "./app.pl", "daemon"]
+EXPOSE 80
+CMD ["perl", "./app.pl", "daemon", "-l", "http://*:80"]
